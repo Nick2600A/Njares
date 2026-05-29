@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IHG Sales Call Flow Companion</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --card-bg: #1f2833;
+            --text-main: #ffffff;
+            --text-muted: #c5a059;
+            --accent-blue: #45f3ff;
+            --accent-green: #02f192;
+            --border-color: #2c3540;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 15px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        header {
+            background: linear-gradient(135deg, #121212, #1a1a1a);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .header-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Dynamic Inputs */
+        .live-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .live-inputs input {
+            background-color: #000;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .live-inputs input:focus {
+            border-color: var(--accent-blue);
+            outline: none;
+        }
+
+        /* Progress Bar & Reset */
+        .tracker-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .progress-container {
+            flex-grow: 1;
+            background-color: #000;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            transition: width 0.3s ease;
+        }
+
+        .reset-btn {
+            background-color: #ff4a4a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .reset-btn:hover {
+            background-color: #d13232;
+        }
+
+        /* Main Workspace layout */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .step-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-header {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .step-num {
+            color: var(--accent-blue);
+            margin-right: 8px;
+        }
+
+        /* Row Layout: Script Left, Checklist Right */
+        .step-body {
+            display: grid;
+            grid-template-columns: 1fr; /* Stacked by default on mobile */
+            gap: 0;
+        }
+
+        @media (min-width: 768px) {
+            .step-body {
+                grid-template-columns: 1.2fr 0.8fr; /* Side-by-side on desktop */
+            }
+        }
+
+        .script-side {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 768px) {
+            .script-side {
+                border-bottom: none;
+                border-right: 1px solid var(--border-color);
+            }
+        }
+
+        .script-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .script-text {
+            font-style: italic;
+            font-size: 1rem;
+            color: #f1f1f1;
+            background-color: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .script-text span.highlight {
+            color: var(--accent-blue);
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        .checklist-side {
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.15);
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .checklist-item:hover {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .checklist-item last-child {
+            margin-bottom: 0;
+        }
+
+        /* Large Touch-friendly Checkboxes */
+        .checklist-item input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            position: relative;
+            cursor: pointer;
+            background-color: #000;
+        }
+
+        .checklist-item input[type="checkbox"]:checked {
+            background-color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .checklist-item input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            color: #000;
+            font-size: 16px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-translate(-50%, -50%));
+            line-height: 0;
+        }
+
+        .checklist-text {
+            font-size: 0.95rem;
+            user-select: none;
+            padding-top: 2px;
+        }
+
+        .checklist-item input[type="checkbox"]:checked + .checklist-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        /* Sub-items (like verification points) */
+        .sub-checklist {
+            margin-left: 20px;
+            margin-top: 5px;
+            border-left: 2px dashed var(--border-color);
+            padding-left: 10px;
+        }
+
+        .sub-checklist .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* General Mindset Checklist Footer Card */
+        .mindset-card {
+            background: linear-gradient(135deg, #2c1a30, #140d1a);
+            border: 1px solid #633373;
+        }
+        
+        .mindset-card .step-header {
+            color: #d176f7;
+        }
+
+        .mindset-card .checklist-item input[type="checkbox"]:checked {
+            background-color: #d176f7;
+            border-color: #d176f7;
+        }
+
+        /* Active highlight dynamic behavior */
+        .step-card:focus-within {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(69, 243, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">Sales Call Companion & QA</div>
+        <div class="live-inputs">
+            <input type="text" id="agentName" placeholder="Your Name (e.g., Alex)" oninput="updateLiveFields()">
+            <input type="text" id="hotelName" placeholder="Hotel Name (e.g., InterContinental)" oninput="updateLiveFields()">
+        </div>
+        <div class="tracker-controls">
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <button class="reset-btn" onclick="resetForm()">RESET</button>
+        </div>
+    </header>
+
+    <div class="flow-container">
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">01.</span> CALL OPENING</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Scripted Opening</div>
+                    <div class="script-text">"Thank you for calling <span class="val-hotel">[Hotel Name]</span> reservations, my name is <span class="val-agent">[Your Name]</span>. Are you trying to make a reservation?"</div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Greeted customer & confirmed purpose of call</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">02.</span> CALLBACK NUMBER</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Scripted Hook</div>
+                    <div class="script-text">"In case we get disconnected, may I have your best callback number?"</div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Captured and confirmed callback number immediately</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">03.</span> IHG REWARDS CHECK</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Loyalty Spiel</div>
+                    <div class="script-text">"Are you an IHG One Rewards member? I can look up your account to get you points and exclusive rates!"</div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Checked IHG membership details</span>
+                    </label>
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Acknowledged loyalty status / membership value</span>
+                    </label>
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Acknowledged customer choosing hotel for stay</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">04.</span> ASSUMPTIVE PROBING</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Discovery Prompts</div>
+                    <div class="script-text">"What dates are you looking to stay?" <br><br> "Do you have any rooms or rates in mind?"</div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Asked key probing questions (dates, needs, rooms)</span>
+                    </label>
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Asked reason for travel</span>
+                    </label>
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Web Spiel: "Do you have a specific rate you want me to check?"</span>
+                    </label>
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Preference Check: "Do you need one bed or two beds?"</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">05.</span> CREATE URGENCY</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Urgency Frameworks (Choose One)</div>
+                    <div class="script-text">
+                        • "We're quite busy this month, let me see what I can squeeze in!"<br><br>
+                        • "We get a lot of last-minute calls due to cancellations—let me check what I have..."<br><br>
+                        • "Rates can change quickly, let's lock something in while it's available."
+                    </div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Created clear urgency/scarcity to leverage booking</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">06.</span> INITIAL OFFER</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Pitch Options</div>
+                    <div class="script-text">
+                        "Great news! I can offer you our <strong>[room type]</strong> with <strong>(amenities)</strong> at <strong>[Best Flex Rate]</strong>. I can secure this..."
+                        <br><br>
+                        "Or for a little more, I can upgrade you to a <strong>'suite [room type]'</strong> with <strong>(suite amenities)</strong> for <strong>[Rate]</strong> night plus tax—great value for more space and comfort!"
+                    </div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Presented best available rate clearly</span>
+                    </label>
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Mentioned specific descriptive room amenities</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">07 & 08.</span> UPSELL & EXTRAS</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Value Add-ons</div>
+                    <div class="script-text">
+                        • "Would you like to extend your stay while we still have availability?"<br><br>
+                        • "Do you need additional rooms for family, friends, or colleagues as well?"<br><br>
+                        • "For just $10 more, we can include breakfast in your stay—would you like to add that?"
+                    </div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Offered room upgrade / better package alternative</span>
+                    </label>
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Offered additional nights or additional rooms</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="step-header">
+                <span><span class="step-num">09.</span> RECAP (7-POINT VERIFICATION)</span>
+            </div>
+            <div class="step-body">
+                <div class="script-side">
+                    <div class="script-label">Confirmation Formula</div>
+                    <div class="script-text">"So you're booked for [dates] in a [room type]. Let's make sure everything matches perfectly..."</div>
+                </div>
+                <div class="checklist-side">
+                    <label class="checklist-item">
+                        <input type="checkbox" class="qa-check">
+                        <span class="checklist-text">Recapped overall booking details clearly</span>
+                    </label>
+                    
+                    <div class="sub-checklist">
+                        <div class="script-label" style="margin-left:5px;">7 Points Checklist:</div>
+                        <label class="checklist-item">
+                            <input type="checkbox" class="qa-check">
+                            <span class="checklist-text">1. Hotel Name and Address</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" class="qa-check">
+                            <span class="checklist-text">2. Day and Date of Arrival</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" class="qa-check">
+                            <span class="checklist-text">3. Number of Nights</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" class="qa-check">
+                            <span class="checklist-text">4. Number of Rooms & Types</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" class="qa-check">
+                            <span class="checklist-text">5. Rooms Rate Verification</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" class="qa-check">
+                            <span class="checklist-text">6. Cancellation Policy Explained</span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" class="qa-check">
+                            <spa
